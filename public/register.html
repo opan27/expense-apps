@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register - Expense Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-blue-300 flex items-center justify-center min-h-screen">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+    <div class="flex flex-col items-center mb-7">
+      <i data-lucide="wallet" class="w-12 h-12 text-blue-700"></i>
+      <h2 class="text-4xl font-bold text-blue-700">Expense App</h2>
+      <h2 class="text-2xl font-bold text-blue-700 mt-2">Sign up</h2>
+    </div>
+    <form id="registerForm" class="flex flex-col gap-5">
+      <div>
+        <label class="block font-medium mb-1" for="name">Nama</label>
+        <div class="relative">
+          <span class="absolute left-2 top-1/2 -translate-y-1/2 text-blue-400">
+            <i data-lucide="user" class="w-5 h-5"></i>
+          </span>
+          <input type="text" id="name" name="name" autocomplete="name" required placeholder="Masukkan nama lengkap"
+            class="w-full border border-gray-300 rounded pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        </div>
+      </div>
+      <div>
+        <label class="block font-medium mb-1" for="email">Email</label>
+        <div class="relative">
+          <span class="absolute left-2 top-1/2 -translate-y-1/2 text-blue-400">
+            <i data-lucide="mail" class="w-5 h-5"></i>
+          </span>
+          <input type="email" id="email" name="email" autocomplete="email" required placeholder="Masukkan email"
+            class="w-full border border-gray-300 rounded pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        </div>
+      </div>
+      <div>
+        <label class="block font-medium mb-1" for="password">Password</label>
+        <div class="relative">
+          <span class="absolute left-2 top-1/2 -translate-y-1/2 text-blue-400">
+            <i data-lucide="lock" class="w-5 h-5"></i>
+          </span>
+          <input type="password" id="password" name="password" autocomplete="new-password" required placeholder="Buat password"
+            class="w-full border border-gray-300 rounded pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        </div>
+      </div>
+      <button type="submit" class="bg-blue-700 text-white font-bold py-2 rounded-lg hover:bg-blue-800 shadow transition">Daftar</button>
+    </form>
+    <div id="regError" class="text-red-600 text-center mt-4 hidden"></div>
+    <div class="mt-5 text-center text-gray-500">
+      Sudah punya akun? <a href="login.html" class="text-blue-700 underline">Login</a>
+    </div>
+  </div>
+  <script>
+    const regForm = document.getElementById('registerForm');
+    const regError = document.getElementById('regError');
+    regForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = regForm.name.value;
+      const email = regForm.email.value;
+      const password = regForm.password.value;
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password })
+        });
+        const result = await res.json();
+        if (result.message) {
+          window.location.href = '/login.html';
+        } else {
+          regError.textContent = result.error || 'Registrasi gagal';
+          regError.classList.remove('hidden');
+        }
+      } catch {
+        regError.textContent = 'Terjadi error koneksi';
+        regError.classList.remove('hidden');
+      }
+    });
+    if(window.lucide && lucide.createIcons) lucide.createIcons();
+    document.addEventListener("DOMContentLoaded", () => {
+      if(window.lucide && lucide.createIcons) lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

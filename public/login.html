@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Expense Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-blue-300 flex items-center justify-center min-h-screen">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+    <div class="flex flex-col items-center mb-7">
+      <i data-lucide="wallet" class="w-12 h-12 text-blue-700"></i>
+      <h2 class="text-4xl font-bold text-blue-700">Expense Apps</h2>
+      <h2 class="text-2xl font-bold text-blue-700 mt-2">Sign in</h2>
+    </div>
+    <form id="loginForm" class="flex flex-col gap-5">
+      <div>
+        <label class="block font-medium mb-1" for="email">Email</label>
+        <div class="relative">
+          <span class="absolute left-2 top-1/2 -translate-y-1/2 text-blue-400">
+            <i data-lucide="mail" class="w-5 h-5"></i>
+          </span>
+          <input type="email" id="email" name="email" autocomplete="email" required placeholder="Masukkan email"
+            class="w-full border border-gray-300 rounded pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        </div>
+      </div>
+      <div>
+        <label class="block font-medium mb-1" for="password">Password</label>
+        <div class="relative">
+          <span class="absolute left-2 top-1/2 -translate-y-1/2 text-blue-400">
+            <i data-lucide="lock" class="w-5 h-5"></i>
+          </span>
+          <input type="password" id="password" name="password" autocomplete="current-password" required placeholder="Masukkan password"
+            class="w-full border border-gray-300 rounded pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        </div>
+      </div>
+      <button type="submit" class="bg-blue-700 text-white font-bold py-2 rounded-lg hover:bg-blue-800 shadow transition">Login</button>
+    </form>
+    <div id="loginError" class="text-red-600 text-center mt-4 hidden"></div>
+    <div class="mt-5 text-center text-gray-500">
+      Belum punya akun? <a href="register.html" class="text-blue-700 underline">Daftar di sini</a>
+    </div>
+  </div>
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const loginError = document.getElementById('loginError');
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = loginForm.email.value;
+      const password = loginForm.password.value;
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const result = await res.json();
+        if (result.token) {
+          localStorage.setItem('jwt', result.token);
+          window.location.href = '/dashboard.html';
+        } else {
+          loginError.textContent = result.error || 'Login gagal';
+          loginError.classList.remove('hidden');
+        }
+      } catch {
+        loginError.textContent = 'Terjadi error koneksi';
+        loginError.classList.remove('hidden');
+      }
+    });
+    if(window.lucide && lucide.createIcons) lucide.createIcons();
+    document.addEventListener("DOMContentLoaded", () => {
+      if(window.lucide && lucide.createIcons) lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
