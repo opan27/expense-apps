@@ -5,12 +5,14 @@ const authRouter = require('./routes/auth');
 const dashboardRouter = require('./routes/dashboard');
 const expenseRouter = require('./routes/expense');
 const incomeRouter = require('./routes/income');
+const recommendationRouter = require('./routes/recommendation');
 const app = express();
 
 app.use(cors());
 app.use(express.static('public'));
 app.use(express.json());
 
+app.use('/api', recommendationRouter);
 app.use('/api/income', incomeRouter);
 app.use('/api/auth', authRouter);
 app.use('/api', dashboardRouter);

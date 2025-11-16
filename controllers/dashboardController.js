@@ -1,4 +1,5 @@
 const db = require('../db');
+const recommendationService = require('../services/recommendationService');
 
 exports.getDashboard = async (req, res) => {
   const user_id = req.user.userId;
@@ -22,11 +23,16 @@ exports.getDashboard = async (req, res) => {
     SELECT DATE_FORMAT(date, '%d %b %Y') as date, category, amount, 'expense' as type FROM expense WHERE user_id=?
     ORDER BY date DESC LIMIT 5
   `, [user_id, user_id]);
+
+  // Ambil juga data rekomendasi produk
+  const recos = await recommendationService.recommend(user_id, "-6.208", "106.795", 5);
+
   res.json({
     userName,
     totalIncome: incomeRows[0].total || 0,
     totalExpense: expenseRows[0].total || 0,
     trxChart: chartRows.reverse(),
-    latest: latestRows
+    latest: latestRows,
+    recommendations: recos.recommendations // <-- akan bisa langsung dirender!
   });
 };
