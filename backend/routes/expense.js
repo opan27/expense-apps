@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
-const expenseController = require('../controllers/expenseController');
+const expenseController = require("../controllers/expenseController");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 function authMiddleware(req, res, next) {
@@ -20,6 +20,7 @@ function authMiddleware(req, res, next) {
 router.get("/overview", authMiddleware, expenseController.getOverview);
 router.get("/profile", authMiddleware, expenseController.getProfile);
 router.get("/summary", authMiddleware, expenseController.getSummary);
+router.get("/export", authMiddleware, expenseController.exportExpense);
 router.post("/", authMiddleware, expenseController.addExpense);
 router.delete("/:id", authMiddleware, expenseController.deleteExpense);
 router.put("/:id", authMiddleware, expenseController.updateExpense);
