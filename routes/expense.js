@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const expenseController = require('../controllers/expenseController');
 
 const JWT_SECRET = process.env.JWT_SECRET;
+
 function authMiddleware(req, res, next) {
   const authHeader = req.headers["authorization"];
   if (!authHeader) return res.sendStatus(401);
@@ -17,11 +18,16 @@ function authMiddleware(req, res, next) {
   }
 }
 
-router.get("/overview", authMiddleware, expenseController.getOverview);
-router.get("/profile", authMiddleware, expenseController.getProfile);
-router.get("/summary", authMiddleware, expenseController.getSummary);
-router.post("/", authMiddleware, expenseController.addExpense);
-router.delete("/:id", authMiddleware, expenseController.deleteExpense);
-router.put("/:id", authMiddleware, expenseController.updateExpense);
+// >>> semua route di bawah ini wajib lewat auth
+router.use(authMiddleware);
+
+// SEKARANG semua sudah punya req.user
+router.post('/pay-installment/:id', expenseController.payInstallment);
+router.get("/overview", expenseController.getOverview);
+router.get("/profile", expenseController.getProfile);
+router.get("/summary", expenseController.getSummary);
+router.post("/", expenseController.addExpense);
+router.delete("/:id", expenseController.deleteExpense);
+router.put("/:id", expenseController.updateExpense);
 
 module.exports = router;

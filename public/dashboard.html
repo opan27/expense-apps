@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,7 +16,7 @@
     <aside class="w-60 bg-white border-r px-6 pt-10 flex flex-col">
       <div class="flex flex-col items-center mb-8">
         <div id="avatarInitial"
-             class="w-14 h-14 bg-purple-200 rounded-full flex items-center justify-center font-bold text-xl text-purple-700">
+          class="w-14 h-14 bg-purple-200 rounded-full flex items-center justify-center font-bold text-xl text-purple-700">
           U
         </div>
         <span class="font-semibold mt-3 text-sm" id="sidebarName">Username</span>
@@ -36,8 +37,7 @@
         <a href="installment.html" class="flex items-center px-4 py-2 hover:bg-gray-100 rounded">
           <i data-lucide="layers" class="w-4 h-4 mr-3"></i> Cicilan
         </a>
-        <button onclick="logout()"
-                class="flex items-center px-4 py-2 hover:bg-red-100 rounded text-red-600 mt-5">
+        <button onclick="logout()" class="flex items-center px-4 py-2 hover:bg-red-100 rounded text-red-600 mt-5">
           <i data-lucide="log-out" class="w-4 h-4 mr-3"></i> Logout
         </button>
       </nav>
@@ -95,14 +95,15 @@
 
         <!-- RIGHT COLUMN -->
         <div class="space-y-6">
-                      <div class="bg-white rounded-lg shadow p-6">
+          <!-- INSTALLMENT OVERVIEW CARD -->
+          <div class="bg-white rounded-lg shadow p-6">
             <div class="flex justify-between items-center mb-3">
               <div>
                 <div class="font-semibold text-sm">Installment Overview</div>
                 <div class="text-xs text-gray-500">Ringkasan cicilan bulan ini.</div>
               </div>
               <a href="installment.html"
-                 class="text-xs px-3 py-1 rounded bg-purple-100 text-purple-700 hover:bg-purple-200">
+                class="text-xs px-3 py-1 rounded bg-purple-100 text-purple-700 hover:bg-purple-200">
                 Kelola Cicilan
               </a>
             </div>
@@ -110,12 +111,31 @@
               <!-- diisi JS -->
             </div>
           </div>
+
+          <!-- UPCOMING INSTALLMENTS (H-10 s/d H) -->
+          <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex justify-between items-center mb-3">
+              <div>
+                <div class="font-semibold text-sm">Cicilan Menjelang Jatuh Tempo</div>
+                <div class="text-xs text-gray-500">
+                  Daftar cicilan H-10 sampai hari ini.
+                </div>
+              </div>
+              <a href="installment.html"
+                class="text-xs px-3 py-1 rounded bg-yellow-100 text-yellow-700 hover:bg-yellow-200">
+                Lihat Semua
+              </a>
+            </div>
+            <div id="upcomingInstallments" class="space-y-3 text-xs">
+              <!-- diisi JS -->
+            </div>
+          </div>
+
           <!-- RECENT EXPENSES -->
           <div class="bg-white rounded-lg shadow p-6">
             <div class="flex justify-between items-center mb-4 text-sm font-semibold">
               <span>Recent Expenses</span>
-              <a href="expense.html"
-                 class="px-3 py-1 bg-red-100 rounded text-red-700 hover:bg-red-200">See All</a>
+              <a href="expense.html" class="px-3 py-1 bg-red-100 rounded text-red-700 hover:bg-red-200">See All</a>
             </div>
             <ul id="expensesList" class="space-y-4 text-sm"></ul>
           </div>
@@ -124,18 +144,45 @@
           <div class="bg-white rounded-lg shadow p-6">
             <div class="flex justify-between items-center mb-4 text-sm font-semibold">
               <span>Recent Income</span>
-              <a href="income.html"
-                 class="px-3 py-1 bg-green-100 rounded text-green-700 hover:bg-green-200">See All</a>
+              <a href="income.html" class="px-3 py-1 bg-green-100 rounded text-green-700 hover:bg-green-200">See All</a>
             </div>
             <ul id="incomeList" class="space-y-4 text-sm"></ul>
           </div>
-          
         </div>
+
       </div>
     </main>
   </div>
 
   <script>
+    async function payInstallment(id) {
+      if (!confirm("Bayar cicilan bulan ini?")) return;
+
+      try {
+        const res = await fetch(`/api/expense/pay-installment/${id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + jwt
+          }
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          alert("Cicilan berhasil dicatat sebagai expense.");
+          loadUpcomingInstallments();
+          fetchExpenseStats();
+          fetchIncomeStats();
+        } else {
+          alert(data.error || "Gagal membayar cicilan.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Terjadi kesalahan.");
+      }
+    }
+
     async function loadBillsSummary() {
       try {
         const res = await fetch('/api/bills/recommendations', {
@@ -174,6 +221,57 @@
           'Gagal memuat info cicilan bulan ini.';
       }
     }
+    async function loadUpcomingInstallments() {
+      try {
+        const res = await fetch('/api/installments/upcoming', {
+          headers: { Authorization: 'Bearer ' + jwt }
+        });
+        const container = document.getElementById('upcomingInstallments');
+
+        if (!res.ok) {
+          container.innerHTML =
+            '<div class="text-gray-400">Gagal memuat cicilan menjelang jatuh tempo.</div>';
+          return;
+        }
+
+        const list = await res.json();
+        if (!list || list.length === 0) {
+          container.innerHTML =
+            '<div class="text-gray-400">Tidak ada cicilan H-10 sampai hari ini.</div>';
+          return;
+        }
+
+        container.innerHTML = list.map(item => `
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="font-semibold text-xs">${item.name}</div>
+          <div class="text-[11px] text-gray-500">
+            Jatuh tempo tanggal ${item.due_day} ·
+            Sisa ${item.remaining_months} bulan
+          </div>
+          <div class="text-[11px] text-gray-500">
+            Bayar per bulan:
+            <span class="font-semibold text-green-700">
+              ${formatRupiah(item.monthly_payment)}
+            </span>
+          </div>
+        </div>
+
+        <button 
+           onclick="location.href = 'expense.html?installment_id=${item.id}'"
+          class="text-[10px] px-2 py-1 rounded bg-purple-100 text-purple-700 hover:bg-purple-200">
+          Bayar
+        </button>
+      </div>
+    `).join('');
+
+      } catch (e) {
+        console.error(e);
+        document.getElementById('upcomingInstallments').innerHTML =
+          '<div class="text-gray-400">Gagal memuat cicilan menjelang jatuh tempo.</div>';
+      }
+    }
+
 
     function formatRupiah(num) {
       if (!num || isNaN(num)) return 'Rp 0';
@@ -287,6 +385,9 @@
     fetchExpenseStats();
     fetchIncomeStats();
     loadBillsSummary();
+    loadUpcomingInstallments();
+
   </script>
 </body>
+
 </html>

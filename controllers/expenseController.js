@@ -1,3 +1,4 @@
+// controllers/expenseController.js
 const db = require('../db');
 
 exports.getOverview = async (req, res) => {
@@ -36,9 +37,9 @@ exports.getSummary = async (req, res) => {
   const user_id = req.user.userId;
   const [recentRows] = await db.query(
     `SELECT id, category, amount, DATE_FORMAT(date, '%d %b %Y') as date, date as isoDate
-    FROM expense
-    WHERE user_id=?
-    ORDER BY date DESC`,
+     FROM expense
+     WHERE user_id=?
+     ORDER BY date DESC`,
     [user_id]
   );
   const [barRows] = await db.query(
@@ -54,17 +55,82 @@ exports.getSummary = async (req, res) => {
   });
 };
 
-exports.addExpense = async (req, res) => {
-  const { amount, category, date } = req.body;
+
+exports.payInstallment = async (req, res) => {
   const user_id = req.user.userId;
+  const installment_id = req.params.id;
+  const { amount, date } = req.body;
+
+  if (!amount || !date) {
+    return res.status(400).json({ error: 'amount dan date wajib diisi' });
+  }
+
+  // simpan sebagai expense kategori cicilan
+  await db.query(
+    `INSERT INTO expense (user_id, amount, category, date, installment_id)
+     VALUES (?, ?, 'cicilan', ?, ?)`,
+    [user_id, amount, date, installment_id]
+  );
+
+  res.json({ message: 'Pembayaran cicilan tercatat' });
+};
+
+// controllers/expenseController.js
+
+exports.addExpense = async (req, res) => {
+  const { amount, category, date, installment_id } = req.body;
+  const user_id = req.user.userId;
+
   if (!amount || !category || !date)
     return res.status(400).json({ error: "Data tidak lengkap" });
-  await db.query(
-    "INSERT INTO expense (user_id, amount, category, date) VALUES (?, ?, ?, ?)",
-    [user_id, amount, category, date]
+
+  // Jika ini pembayaran cicilan
+  if (category === "cicilan" && installment_id) {
+    // cek apakah bulan ini sudah dibayar
+    const [check] = await db.query(
+      `
+      SELECT id FROM expense
+      WHERE user_id = ?
+        AND installment_id = ?
+        AND YEAR(date)  = YEAR(?)
+        AND MONTH(date) = MONTH(?)
+    `,
+      [user_id, installment_id, date, date]
+    );
+
+    if (check.length > 0) {
+      return res.status(400).json({
+        error: "Cicilan bulan ini sudah dibayar."
+      });
+    }
+  }
+
+  // Masukkan expense
+  const [result] = await db.query(
+    `INSERT INTO expense (user_id, amount, category, date, installment_id)
+     VALUES (?, ?, ?, ?, ?)`,
+    [user_id, amount, category, date, installment_id || null]
   );
-  res.json({ message: "Expense berhasil ditambahkan" });
+
+  // Jika pembayaran cicilan, kurangi sisa bulan
+  if (category === "cicilan" && installment_id) {
+    await db.query(
+      `
+      UPDATE installments
+      SET remaining_months = GREATEST(remaining_months - 1, 0),
+          status = CASE
+                     WHEN GREATEST(remaining_months - 1, 0) = 0 THEN 'closed'
+                     ELSE status
+                   END
+      WHERE id = ? AND user_id = ?
+    `,
+      [installment_id, user_id]
+    );
+  }
+
+  res.json({ message: "Expense berhasil ditambahkan", id: result.insertId });
 };
+
 
 exports.deleteExpense = async (req, res) => {
   const user_id = req.user.userId;
@@ -79,13 +145,16 @@ exports.deleteExpense = async (req, res) => {
 exports.updateExpense = async (req, res) => {
   const user_id = req.user.userId;
   const { id } = req.params;
-  const { amount, category, date } = req.body;
-  if (!amount || !category || !date) 
+  const { amount, category, date, installment_id } = req.body;
+
+  if (!amount || !category || !date)
     return res.status(400).json({ error: 'Data tidak lengkap' });
+
   const [result] = await db.query(
-    'UPDATE expense SET amount=?, category=?, date=? WHERE id=? AND user_id=?',
-    [amount, category, date, id, user_id]
+    'UPDATE expense SET amount=?, category=?, date=?, installment_id=? WHERE id=? AND user_id=?',
+    [amount, category, date, installment_id || null, id, user_id]
   );
+
   if (result.affectedRows > 0) {
     res.json({ message: 'Expense berhasil diupdate' });
   } else {

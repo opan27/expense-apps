@@ -3,12 +3,14 @@ const router = express.Router();
 const authMiddleware = require('../middleware/jwtAuth');
 const installmentController = require('../controllers/installmentController');
 
-router.use(authMiddleware); // semua endpoint butuh JWT
+router.use(authMiddleware);
 
-router.get('/', installmentController.getAll);        // GET /api/installments
-router.post('/', installmentController.create);       // POST /api/installments
-router.get('/:id', installmentController.getById);    // GET /api/installments/:id
-router.put('/:id', installmentController.update);     // PUT /api/installments/:id
-router.delete('/:id', installmentController.remove);  // DELETE /api/installments/:id
+router.get('/:id/payments', authMiddleware, installmentController.getPayments);
+router.get('/upcoming', installmentController.getUpcomingDue);
+router.get('/', installmentController.getAll);
+router.post('/', installmentController.create);
+router.get('/:id', installmentController.getById);
+router.put('/:id', installmentController.update);
+router.delete('/:id', installmentController.remove);
 
 module.exports = router;
