@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import api from "../api/axios";
 import { Download, CreditCard, Plus } from "lucide-react";
@@ -12,7 +12,8 @@ import RecentList from "../components/RecentList";
 import RightSidebar from "../components/RightSidebar";
 
 const Expense = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [recent, setRecent] = useState([]);
   const [barData, setBarData] = useState([]);
@@ -37,6 +38,8 @@ const Expense = () => {
   const [expenseIdToEdit, setExpenseIdToEdit] = useState(null);
   const [activeTab, setActiveTab] = useState("categories");
   const [installments, setInstallments] = useState([]);
+  const [processedInstallmentQuery, setProcessedInstallmentQuery] =
+    useState(false);
 
   const fetchProfile = async () => {
     try {
@@ -104,7 +107,11 @@ const Expense = () => {
   // Handle query parameter from dashboard
   useEffect(() => {
     const installmentIdFromQuery = searchParams.get("installment_id");
-    if (installmentIdFromQuery && installments.length > 0) {
+    if (
+      installmentIdFromQuery &&
+      installments.length > 0 &&
+      !processedInstallmentQuery
+    ) {
       const selectedInstallment = installments.find(
         (i) => i.id === Number(installmentIdFromQuery)
       );
@@ -116,9 +123,10 @@ const Expense = () => {
           installment_id: installmentIdFromQuery,
         });
         setShowAddForm(true);
+        setProcessedInstallmentQuery(true);
       }
     }
-  }, [searchParams, installments]);
+  }, [searchParams, installments, processedInstallmentQuery]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -165,6 +173,10 @@ const Expense = () => {
       await api.post("/api/expense", payload);
       setForm({ amount: "", category: "", date: "", installment_id: "" });
       setShowAddForm(false);
+      // Clear query params from URL
+      if (searchParams.get("installment_id")) {
+        setSearchParams({});
+      }
       fetchSummary();
       fetchOverview();
       fetchDashboard();
