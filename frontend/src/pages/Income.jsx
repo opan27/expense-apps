@@ -204,22 +204,16 @@ const Income = () => {
 
   const handleDownload = async () => {
     try {
-      const queryParams = new URLSearchParams({
-        start: dateRange.start,
-        end: dateRange.end,
-      }).toString();
-
-      const response = await api.get(`/api/income/export?${queryParams}`, {
+      // Download all income data without date range filter
+      const response = await api.get(`/api/income/export`, {
         responseType: "blob",
       });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute(
-        "download",
-        `income-report-${dateRange.start}-to-${dateRange.end}.csv`
-      );
+      const today = new Date().toISOString().slice(0, 10);
+      link.setAttribute("download", `income-report-all-${today}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import api from "../api/axios";
 import { Download, CreditCard, Plus } from "lucide-react";
@@ -11,11 +12,17 @@ import RecentList from "../components/RecentList";
 import RightSidebar from "../components/RightSidebar";
 
 const Expense = () => {
+  const [searchParams] = useSearchParams();
   const [username, setUsername] = useState("");
   const [recent, setRecent] = useState([]);
   const [barData, setBarData] = useState([]);
   const [donutChart, setDonutChart] = useState([]);
-  const [form, setForm] = useState({ amount: "", category: "", date: "" });
+  const [form, setForm] = useState({
+    amount: "",
+    category: "",
+    date: "",
+    installment_id: "",
+  });
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
     const end = today.toISOString().slice(0, 10);
@@ -29,6 +36,7 @@ const Expense = () => {
   const [totalExpense, setTotalExpense] = useState(0);
   const [expenseIdToEdit, setExpenseIdToEdit] = useState(null);
   const [activeTab, setActiveTab] = useState("categories");
+  const [installments, setInstallments] = useState([]);
 
   const fetchProfile = async () => {
     try {
@@ -36,6 +44,15 @@ const Expense = () => {
       setUsername(res.data.userName);
     } catch (error) {
       console.error("Error fetching profile:", error);
+    }
+  };
+
+  const loadInstallments = async () => {
+    try {
+      const res = await api.get("/api/installments");
+      setInstallments(res.data.filter((i) => i.status === "active"));
+    } catch (error) {
+      console.error("Error loading installments:", error);
     }
   };
 
@@ -81,10 +98,52 @@ const Expense = () => {
     fetchSummary();
     fetchOverview();
     fetchDashboard();
+    loadInstallments();
   }, [dateRange]);
 
+  // Handle query parameter from dashboard
+  useEffect(() => {
+    const installmentIdFromQuery = searchParams.get("installment_id");
+    if (installmentIdFromQuery && installments.length > 0) {
+      const selectedInstallment = installments.find(
+        (i) => i.id === Number(installmentIdFromQuery)
+      );
+      if (selectedInstallment) {
+        setForm({
+          amount: selectedInstallment.monthly_payment,
+          category: "cicilan",
+          date: new Date().toISOString().slice(0, 10),
+          installment_id: installmentIdFromQuery,
+        });
+        setShowAddForm(true);
+      }
+    }
+  }, [searchParams, installments]);
+
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    // Auto-fill amount and set category to 'cicilan' when installment is selected
+    if (name === "installment_id" && value) {
+      const selectedInstallment = installments.find(
+        (i) => i.id === Number(value)
+      );
+      if (selectedInstallment) {
+        setForm({
+          ...form,
+          installment_id: value,
+          amount: selectedInstallment.monthly_payment,
+          category: "cicilan",
+        });
+        return;
+      }
+    } else if (name === "installment_id" && !value) {
+      // Clear amount and category when installment is deselected
+      setForm({ ...form, installment_id: "", amount: "", category: "" });
+      return;
+    }
+
+    setForm({ ...form, [name]: value });
   };
 
   const handleDateRangeChange = (e) => {
@@ -94,15 +153,27 @@ const Expense = () => {
 
   const handleAddExpense = async (e) => {
     e.preventDefault();
+
+    const payload = {
+      amount: form.amount,
+      category: form.category,
+      date: form.date,
+      installment_id: form.installment_id || null,
+    };
+
     try {
-      await api.post("/api/expense", form);
-      setForm({ amount: "", category: "", date: "" });
+      await api.post("/api/expense", payload);
+      setForm({ amount: "", category: "", date: "", installment_id: "" });
       setShowAddForm(false);
       fetchSummary();
       fetchOverview();
+      fetchDashboard();
+      await loadInstallments(); // Reload to update remaining months
     } catch (error) {
       console.error("Error adding expense:", error);
-      alert("Gagal menambah expense");
+      const errorMessage =
+        error.response?.data?.error || "Gagal menambah expense";
+      alert(errorMessage);
     }
   };
 
@@ -116,7 +187,7 @@ const Expense = () => {
       }
       console.log("Updating expense ID:", idToUse, "with form:", form);
       await api.put(`/api/expense/${idToUse}`, form);
-      setForm({ amount: "", category: "", date: "" });
+      setForm({ amount: "", category: "", date: "", installment_id: "" });
       setEditingExpense(null);
       setExpenseIdToEdit(null);
       setShowAddForm(false);
@@ -190,28 +261,23 @@ const Expense = () => {
       amount: expense.amount,
       category: expense.category,
       date: formattedDate,
+      installment_id: expense.installment_id || "",
     });
     setShowAddForm(true);
   };
 
   const handleDownload = async () => {
     try {
-      const queryParams = new URLSearchParams({
-        start: dateRange.start,
-        end: dateRange.end,
-      }).toString();
-
-      const response = await api.get(`/api/expense/export?${queryParams}`, {
+      // Download all expense data without date range filter
+      const response = await api.get(`/api/expense/export`, {
         responseType: "blob",
       });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute(
-        "download",
-        `expense-report-${dateRange.start}-to-${dateRange.end}.csv`
-      );
+      const today = new Date().toISOString().slice(0, 10);
+      link.setAttribute("download", `expense-report-all-${today}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -290,7 +356,12 @@ const Expense = () => {
                 setShowAddForm(true);
                 setEditingExpense(null);
                 setExpenseIdToEdit(null);
-                setForm({ amount: "", category: "", date: "" });
+                setForm({
+                  amount: "",
+                  category: "",
+                  date: "",
+                  installment_id: "",
+                });
               }}
               className="bg-red-100 hover:bg-red-200 px-6 py-2 rounded-lg text-red-700 hover:cursor-pointer transition font-medium flex items-center gap-2"
             >
@@ -341,7 +412,12 @@ const Expense = () => {
                         setShowAddForm(false);
                         setEditingExpense(null);
                         setExpenseIdToEdit(null);
-                        setForm({ amount: "", category: "", date: "" });
+                        setForm({
+                          amount: "",
+                          category: "",
+                          date: "",
+                          installment_id: "",
+                        });
                       }}
                       className="text-gray-500 hover:text-gray-700 text-xl hover:cursor-pointer"
                     >
@@ -361,11 +437,16 @@ const Expense = () => {
                       <input
                         type="number"
                         name="amount"
-                        placeholder="Enter amount"
+                        placeholder={
+                          form.installment_id
+                            ? "Terisi otomatis dari cicilan"
+                            : "Enter amount"
+                        }
                         value={form.amount}
                         onChange={handleChange}
                         className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-red-400"
                         required
+                        readOnly={!!form.installment_id}
                       />
                     </div>
 
@@ -376,7 +457,11 @@ const Expense = () => {
                       <input
                         type="text"
                         name="category"
-                        placeholder="Enter category"
+                        placeholder={
+                          form.installment_id
+                            ? "cicilan (otomatis)"
+                            : "Enter category"
+                        }
                         value={form.category}
                         onChange={handleChange}
                         className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-red-400"
@@ -396,6 +481,36 @@ const Expense = () => {
                         className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-red-400"
                         required
                       />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Cicilan (opsional)
+                      </label>
+                      <select
+                        name="installment_id"
+                        value={form.installment_id}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-red-400"
+                        disabled={editingExpense}
+                      >
+                        <option value="">Bukan pembayaran cicilan</option>
+                        {installments.map((inst) => (
+                          <option key={inst.id} value={inst.id}>
+                            {inst.name} - Rp{" "}
+                            {Number(inst.monthly_payment).toLocaleString(
+                              "id-ID"
+                            )}{" "}
+                            ({inst.remaining_months} bulan)
+                          </option>
+                        ))}
+                      </select>
+                      {form.installment_id && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          * Nominal dan kategori akan terisi otomatis untuk
+                          pembayaran cicilan
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex gap-3 pt-4">
@@ -458,7 +573,12 @@ const Expense = () => {
                         setShowAddForm(true);
                         setEditingExpense(null);
                         setExpenseIdToEdit(null);
-                        setForm({ amount: "", category: "", date: "" });
+                        setForm({
+                          amount: "",
+                          category: "",
+                          date: "",
+                          installment_id: "",
+                        });
                       }}
                       onDownload={handleDownload}
                       onFilterPreset={(preset) => {

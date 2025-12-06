@@ -1,5 +1,5 @@
-import React from "react";
-import { Edit3, Trash2 } from "lucide-react";
+import React, { useState } from "react";
+import { Edit3, Trash2, Eye } from "lucide-react";
 
 // Generic RecentList for transactions; pass `type` to control sign/color
 // Merged with RecentItem logic to reduce component count
@@ -11,13 +11,39 @@ const RecentList = ({
   type = "income",
 }) => {
   const isIncome = type === "income";
+  const [showAll, setShowAll] = useState(false);
+
+  // Sort items by date (newest first)
+  const sortedItems = [...items].sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    return dateB - dateA; // descending order (newest first)
+  });
+
+  // Show only 5 items by default, or all if "See All" is clicked
+  const displayItems = showAll ? sortedItems : sortedItems.slice(0, 5);
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-6">
-      <h3 className="font-semibold text-lg mb-4 text-gray-800">{title}</h3>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="font-semibold text-lg text-gray-800">{title}</h3>
+        {items.length > 5 && (
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+              isIncome
+                ? "text-purple-600 hover:bg-purple-50"
+                : "text-red-600 hover:bg-red-50"
+            }`}
+          >
+            <Eye className="w-4 h-4" />
+            {showAll ? "Show Less" : "See All"}
+          </button>
+        )}
+      </div>
       <div className="space-y-4">
-        {items && items.length > 0 ? (
-          items.map((it) => (
+        {displayItems && displayItems.length > 0 ? (
+          displayItems.map((it) => (
             <div
               key={it.id || `${it.category}-${it.date}`}
               className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition"

@@ -11,6 +11,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
+  Layers,
 } from "lucide-react";
 
 const Sidebar = ({ accentColor = "purple" }) => {
@@ -42,6 +44,12 @@ const Sidebar = ({ accentColor = "purple" }) => {
     { name: "Dashboard", icon: <LayoutDashboard size={20} />, path: "/" },
     { name: "Income", icon: <Wallet size={20} />, path: "/income" },
     { name: "Expense", icon: <Receipt size={20} />, path: "/expense" },
+    {
+      name: "Recommendation",
+      icon: <Sparkles size={20} />,
+      path: "/recommendation",
+    },
+    { name: "Cicilan", icon: <Layers size={20} />, path: "/installment" },
   ];
 
   const handleLogout = () => {

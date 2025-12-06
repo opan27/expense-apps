@@ -1,11 +1,20 @@
-const recommendationService = require('../services/recommendationService');
+const recommendationService = require("../services/recommendationService");
 
 exports.getRecommendations = async (req, res) => {
   try {
-    const { userId, lat, lon, maxDistance } = req.body;
-    const result = await recommendationService.recommend(userId, lat, lon, maxDistance);
-    res.json(result);
-  } catch(err) {
-    res.status(500).json({ error: err.message });
+    const userId = req.user.userId;
+    const category = (req.query.category || "all").toLowerCase(); // all | fashion | electronics | furniture
+    const data = await recommendationService.recommendByCategory(
+      userId,
+      category
+    );
+    res.json({
+      balance: data.balance,
+      category,
+      recommendations: data.recommendations,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Gagal mengambil rekomendasi" });
   }
 };

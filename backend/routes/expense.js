@@ -16,13 +16,17 @@ function authMiddleware(req, res, next) {
     return res.sendStatus(403);
   }
 }
+// >>> semua route di bawah ini wajib lewat auth
+router.use(authMiddleware);
 
-router.get("/overview", authMiddleware, expenseController.getOverview);
-router.get("/profile", authMiddleware, expenseController.getProfile);
-router.get("/summary", authMiddleware, expenseController.getSummary);
-router.get("/export", authMiddleware, expenseController.exportExpense);
-router.post("/", authMiddleware, expenseController.addExpense);
-router.delete("/:id", authMiddleware, expenseController.deleteExpense);
-router.put("/:id", authMiddleware, expenseController.updateExpense);
+// SEKARANG semua sudah punya req.user
+router.post("/pay-installment/:id", expenseController.payInstallment);
+router.get("/overview", expenseController.getOverview);
+router.get("/profile", expenseController.getProfile);
+router.get("/summary", expenseController.getSummary);
+router.get("/export", expenseController.exportExpense);
+router.post("/", expenseController.addExpense);
+router.delete("/:id", expenseController.deleteExpense);
+router.put("/:id", expenseController.updateExpense);
 
 module.exports = router;

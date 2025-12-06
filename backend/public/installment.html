@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kelola Cicilan</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen text-gray-800">
+  <div class="flex min-h-screen">
+    <!-- SIDEBAR -->
+    <aside class="w-60 bg-white border-r px-6 pt-10 flex flex-col">
+      <div class="flex flex-col items-center mb-8">
+        <div id="avatarInitial"
+             class="w-14 h-14 bg-purple-200 rounded-full flex items-center justify-center font-bold text-xl text-purple-700">
+          U
+        </div>
+        <span class="font-semibold mt-3 text-sm" id="sidebarName">Username</span>
+      </div>
+      <nav class="flex-1 flex flex-col gap-1 font-medium text-sm">
+        <a href="dashboard.html" class="flex items-center px-4 py-2 hover:bg-gray-100 rounded">
+          <i data-lucide="layout-dashboard" class="w-4 h-4 mr-3"></i> Dashboard
+        </a>
+        <a href="income.html" class="flex items-center px-4 py-2 hover:bg-gray-100 rounded">
+          <i data-lucide="wallet" class="w-4 h-4 mr-3"></i> Income
+        </a>
+        <a href="expense.html" class="flex items-center px-4 py-2 hover:bg-gray-100 rounded">
+          <i data-lucide="credit-card" class="w-4 h-4 mr-3"></i> Expense
+        </a>
+        <a href="recommendation.html" class="flex items-center px-4 py-2 hover:bg-gray-100 rounded">
+          <i data-lucide="sparkles" class="w-4 h-4 mr-3"></i> Rekomendasi Produk
+        </a>
+        <a href="installment.html" class="flex items-center px-4 py-2 bg-purple-100 rounded text-purple-700">
+          <i data-lucide="layers" class="w-4 h-4 mr-3"></i> Cicilan
+        </a>
+        <button onclick="logout()" class="flex items-center px-4 py-2 hover:bg-red-100 rounded text-red-600 mt-5">
+          <i data-lucide="log-out" class="w-4 h-4 mr-3"></i> Logout
+        </button>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 px-8 py-8 space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-xl font-bold mb-1">Kelola Cicilan</h1>
+          <p class="text-sm text-gray-500">
+            Data cicilan ini akan dipakai untuk rekomendasi pembayaran tagihan.
+          </p>
+        </div>
+        <button id="openInstallmentModal"
+                class="bg-purple-600 text-white px-4 py-2 rounded text-sm hover:bg-purple-800">
+          Tambah Cicilan
+        </button>
+      </div>
+
+      <!-- LIST CICILAN -->
+      <section class="bg-white rounded-lg shadow p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="font-semibold text-sm">Daftar Cicilan</h2>
+        </div>
+        <div id="installmentList" class="space-y-3 text-sm"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL FORM CICILAN -->
+  <div id="installmentModal"
+       class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg w-full max-w-2xl p-6 shadow-lg">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="font-semibold text-sm" id="modalTitle">Tambah / Edit Cicilan</h2>
+        <button id="closeInstallmentModal"
+                class="text-gray-400 hover:text-gray-700 text-xl">&times;</button>
+      </div>
+
+      <form id="installmentForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <input type="hidden" id="instId">
+
+        <div>
+          <label class="block mb-1 text-gray-600">Nama Cicilan</label>
+          <input id="name" type="text" class="w-full border rounded px-3 py-2"
+                 placeholder="Kredit HP, KPR, dsb" required>
+        </div>
+
+        <div>
+          <label class="block mb-1 text-gray-600">Total Pokok (Rp)</label>
+          <input id="principal" type="number" min="0" step="1000"
+                 class="w-full border rounded px-3 py-2" required>
+        </div>
+
+        <div>
+          <label class="block mb-1 text-gray-600">Bunga per Tahun (%)</label>
+          <input id="interest_rate" type="number" min="0" step="0.1"
+                 class="w-full border rounded px-3 py-2" value="0">
+        </div>
+
+        <div>
+          <label class="block mb-1 text-gray-600">Bayar per Bulan (Rp)</label>
+          <input id="monthly_payment" type="number" min="0" step="1000"
+                 class="w-full border rounded px-3 py-2" required>
+        </div>
+
+        <div>
+          <label class="block mb-1 text-gray-600">Sisa Bulan Cicilan</label>
+          <input id="remaining_months" type="number" min="1" step="1"
+                 class="w-full border rounded px-3 py-2" required>
+        </div>
+
+        <div>
+          <label class="block mb-1 text-gray-600">Mulai Cicilan</label>
+          <input id="start_date" type="date"
+                 class="w-full border rounded px-3 py-2" required>
+        </div>
+
+        <div>
+          <label class="block mb-1 text-gray-600">Tanggal Jatuh Tempo (1–31)</label>
+          <input id="due_day" type="number" min="1" max="31"
+                 class="w-full border rounded px-3 py-2" required>
+        </div>
+
+        <div>
+          <label class="block mb-1 text-gray-600">Status</label>
+          <select id="status" class="w-full border rounded px-3 py-2">
+            <option value="active">active</option>
+            <option value="closed">closed</option>
+          </select>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block mb-1 text-gray-600">Deskripsi / Catatan</label>
+          <input id="notes" type="text" class="w-full border rounded px-3 py-2"
+                 placeholder="opsional, misal: kredit motor 24x, tenor 2 tahun">
+        </div>
+
+        <div class="md:col-span-2 flex gap-3 mt-2 justify-end">
+          <button type="button" id="resetBtn"
+                  class="px-4 py-2 rounded border text-sm">
+            Reset
+          </button>
+          <button type="submit"
+                  class="bg-purple-600 text-white px-4 py-2 rounded text-sm hover:bg-purple-800">
+            Simpan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function formatRupiah(num) {
+      if (!num || isNaN(num)) return 'Rp 0';
+      return 'Rp ' + Number(num).toLocaleString('id-ID');
+    }
+
+    function logout() {
+      localStorage.removeItem('jwt');
+      location.href = '/login.html';
+    }
+
+    const jwt = localStorage.getItem('jwt');
+    if (!jwt) logout();
+
+    function setProfile(name) {
+      document.getElementById('sidebarName').textContent = name || 'User';
+      const init = (name || 'U').split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
+      document.getElementById('avatarInitial').textContent = init;
+    }
+
+    async function loadProfile() {
+      const res = await fetch('/api/dashboard', {
+        headers: { Authorization: 'Bearer ' + jwt }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setProfile(data.userName);
+    }
+
+    async function loadInstallments() {
+      const res = await fetch('/api/installments', {
+        headers: { Authorization: 'Bearer ' + jwt }
+      });
+      const list = await res.json();
+      renderInstallments(list);
+    }
+
+    function formatDateId(iso) {
+      if (!iso) return '-';
+      const d = new Date(iso);
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    }
+
+    function renderInstallments(list) {
+      const container = document.getElementById('installmentList');
+      if (!list || list.length === 0) {
+        container.innerHTML = '<div class="text-gray-400 text-sm">Belum ada cicilan yang tercatat.</div>';
+        return;
+      }
+      container.innerHTML = list.map(item => `
+        <div class="border rounded-lg p-4 flex justify-between items-start">
+          <div>
+            <div class="font-semibold">${item.name}</div>
+            <div class="text-xs text-gray-500 mb-1">
+              Pokok: ${formatRupiah(item.principal)} · Sisa ${item.remaining_months} bulan
+            </div>
+            <div class="text-xs text-gray-500 mb-1">
+              Bayar per bulan:
+              <span class="font-semibold text-green-700">
+                ${formatRupiah(item.monthly_payment)}
+              </span>
+            </div>
+            <div class="text-xs text-gray-500">
+              Bunga: ${item.interest_rate}% · Jatuh tempo tiap tanggal ${item.due_day}
+            </div>
+            <div class="text-xs text-gray-500">
+              Mulai cicilan : ${formatDateId(item.start_date)}
+            </div>
+            ${item.notes ? `<div class="text-xs text-gray-400 mt-1">${item.notes}</div>` : ''}
+          </div>
+          <div class="flex flex-col gap-2 items-end">
+            <span class="text-[11px] px-2 py-1 rounded-full
+              ${item.status === 'active' ? 'bg-green-100 text-green-700'
+              : item.status === 'closed' ? 'bg-gray-200 text-gray-700'
+              : 'bg-gray-100 text-gray-500'}">
+              ${item.status}
+            </span>
+            <div class="flex gap-2 mt-1">
+              <button class="text-xs px-2 py-1 border rounded text-blue-600"
+                      onclick="editInstallment(${item.id})">
+                Edit
+              </button>
+              <button class="text-xs px-2 py-1 border rounded text-red-600"
+                      onclick="deleteInstallment(${item.id})">
+                Hapus
+              </button>
+              <button class="text-xs px-2 py-1 border rounded text-gray-600"
+                      onclick="toggleHistory(${item.id})">
+                Histori
+              </button>
+              <div id="history-${item.id}" class="mt-2 text-xs text-gray-600 hidden"></div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function toggleHistory(instId) {
+      const el = document.getElementById(`history-${instId}`);
+      if (!el.classList.contains('hidden')) {
+        el.classList.add('hidden');
+        el.innerHTML = '';
+        return;
+      }
+
+      const res = await fetch(`/api/installments/${instId}/payments`, {
+        headers: { Authorization: 'Bearer ' + jwt }
+      });
+      if (!res.ok) {
+        el.textContent = 'Gagal memuat histori.';
+        el.classList.remove('hidden');
+        return;
+      }
+      const list = await res.json();
+      if (!list.length) {
+        el.textContent = 'Belum ada pembayaran tercatat.';
+        el.classList.remove('hidden');
+        return;
+      }
+      el.innerHTML = list.map(p => `
+        <div class="flex justify-between">
+          <span>${p.date.slice(0, 10)}</span>
+          <span class="font-semibold">${formatRupiah(p.amount)}</span>
+        </div>
+      `).join('');
+      el.classList.remove('hidden');
+    }
+
+    function openModal() {
+      document.getElementById('installmentModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('installmentModal').classList.add('hidden');
+    }
+
+    async function saveInstallment(e) {
+      e.preventDefault();
+      const id = document.getElementById('instId').value;
+
+      const payload = {
+        name: document.getElementById('name').value,
+        principal: Number(document.getElementById('principal').value),
+        interest_rate: Number(document.getElementById('interest_rate').value || 0),
+        monthly_payment: Number(document.getElementById('monthly_payment').value),
+        total_months: Number(document.getElementById('remaining_months').value),
+        start_date: document.getElementById('start_date').value,
+        due_day: Number(document.getElementById('due_day').value),
+        status: document.getElementById('status').value,
+        notes: document.getElementById('notes').value || null
+      };
+
+      const method = id ? 'PUT' : 'POST';
+      const url = id ? `/api/installments/${id}` : '/api/installments';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + jwt
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        alert('Gagal menyimpan cicilan');
+        return;
+      }
+
+      resetForm();
+      loadInstallments();
+      closeModal();
+    }
+
+    async function editInstallment(id) {
+      const res = await fetch(`/api/installments/${id}`, {
+        headers: { Authorization: 'Bearer ' + jwt }
+      });
+      if (!res.ok) return;
+      const d = await res.json();
+
+      document.getElementById('instId').value = d.id;
+      document.getElementById('name').value = d.name;
+      document.getElementById('principal').value = d.principal;
+      document.getElementById('interest_rate').value = d.interest_rate;
+      document.getElementById('monthly_payment').value = d.monthly_payment;
+      document.getElementById('remaining_months').value = d.remaining_months;
+      document.getElementById('start_date').value = d.start_date
+        ? d.start_date.slice(0, 10)
+        : '';
+      document.getElementById('due_day').value = d.due_day;
+      document.getElementById('status').value = d.status;
+      document.getElementById('notes').value = d.notes || '';
+
+      document.getElementById('modalTitle').textContent = 'Edit Cicilan';
+      openModal();
+    }
+
+    async function deleteInstallment(id) {
+      if (!confirm('Hapus cicilan ini?')) return;
+      const res = await fetch(`/api/installments/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer' + jwt }
+      });
+      if (!res.ok) {
+        alert('Gagal menghapus cicilan');
+        return;
+      }
+      loadInstallments();
+    }
+
+    function resetForm() {
+      document.getElementById('instId').value = '';
+      document.getElementById('installmentForm').reset();
+      document.getElementById('modalTitle').textContent = 'Tambah Cicilan';
+    }
+
+    document.getElementById('installmentForm').addEventListener('submit', saveInstallment);
+    document.getElementById('resetBtn').addEventListener('click', resetForm);
+    document.getElementById('openInstallmentModal').addEventListener('click', () => {
+      resetForm();
+      openModal();
+    });
+    document.getElementById('closeInstallmentModal').addEventListener('click', closeModal);
+
+    loadProfile();
+    loadInstallments();
+    if (window.lucide && lucide.createIcons) lucide.createIcons();
+  </script>
+</body>
+
+</html>
